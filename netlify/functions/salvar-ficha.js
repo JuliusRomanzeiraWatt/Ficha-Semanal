@@ -2,11 +2,32 @@
 const { MongoClient } = require('mongodb');
 
 exports.handler = async (event, context) => {
+  // Headers CORS
+  const headers = {
+    'Content-Type': 'application/json',
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS'
+  };
+
+  // Aceita OPTIONS para CORS
+  if (event.httpMethod === 'OPTIONS') {
+    return {
+      statusCode: 200,
+      headers,
+      body: ''
+    };
+  }
+
   // Apenas aceita POST
   if (event.httpMethod !== 'POST') {
     return {
       statusCode: 405,
-      body: JSON.stringify({ error: 'Método não permitido' })
+      headers,
+      body: JSON.stringify({ 
+        success: false,
+        error: 'Método não permitido' 
+      })
     };
   }
 
@@ -15,10 +36,18 @@ exports.handler = async (event, context) => {
   const DB_NAME = process.env.DB_NAME || 'watt_consultoria';
   const COLLECTION_NAME = 'fichas_semanais';
 
+  console.log('MONGODB_URI exists:', !!MONGODB_URI);
+  console.log('DB_NAME:', DB_NAME);
+
   if (!MONGODB_URI) {
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: 'Configuração do MongoDB não encontrada' })
+      headers,
+      body: JSON.stringify({ 
+        success: false,
+        error: 'Configuração do MongoDB não encontrada',
+        message: 'Por favor, configure a variável MONGODB_URI no Netlify.\n\n1. Vá em Site settings > Environment variables\n2. Adicione MONGODB_URI com seu link do MongoDB Atlas'
+      })
     };
   }
 
@@ -32,7 +61,11 @@ exports.handler = async (event, context) => {
     if (!data.colaborador || !data.periodo || !data.tarefas) {
       return {
         statusCode: 400,
-        body: JSON.stringify({ error: 'Dados incompletos' })
+        headers,
+        body: JSON.stringify({ 
+          success: false,
+          error: 'Dados incompletos' 
+        })
       };
     }
 
@@ -54,10 +87,7 @@ exports.handler = async (event, context) => {
 
     return {
       statusCode: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
-      },
+      headers,
       body: JSON.stringify({
         success: true,
         id: result.insertedId,
@@ -70,10 +100,12 @@ exports.handler = async (event, context) => {
     
     return {
       statusCode: 500,
+      headers,
       body: JSON.stringify({
         success: false,
         error: 'Erro ao salvar dados',
-        details: error.message
+        message: error.message,
+        details: error.toString()
       })
     };
 
