@@ -51,6 +51,13 @@ exports.handler = async (event, context) => {
     };
   }
 
+  // Adiciona parâmetros necessários ao URI se não estiverem presentes
+  let mongoUri = MONGODB_URI;
+  if (!mongoUri.includes('retryWrites')) {
+    const separator = mongoUri.includes('?') ? '&' : '?';
+    mongoUri += `${separator}retryWrites=true&w=majority`;
+  }
+
   let client;
 
   try {
@@ -69,10 +76,17 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // Conecta ao MongoDB (removendo opções depreciadas)
-    client = new MongoClient(MONGODB_URI, {
-      serverSelectionTimeoutMS: 5000,
-      connectTimeoutMS: 10000
+    // Conecta ao MongoDB com configurações otimizadas para Netlify
+    client = new MongoClient(mongoUri, {
+      serverSelectionTimeoutMS: 10000,
+      connectTimeoutMS: 10000,
+      socketTimeoutMS: 20000,
+      maxPoolSize: 1,
+      minPoolSize: 0,
+      retryWrites: true,
+      retryReads: true,
+      tls: true,
+      tlsAllowInvalidCertificates: false
     });
     
     await client.connect();
