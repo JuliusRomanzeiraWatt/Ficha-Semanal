@@ -1,0 +1,86 @@
+// Função Serverless do Netlify para salvar dados no MongoDB
+const { MongoClient } = require('mongodb');
+
+exports.handler = async (event, context) => {
+  // Apenas aceita POST
+  if (event.httpMethod !== 'POST') {
+    return {
+      statusCode: 405,
+      body: JSON.stringify({ error: 'Método não permitido' })
+    };
+  }
+
+  // Conexão com MongoDB
+  const MONGODB_URI = process.env.MONGODB_URI;
+  const DB_NAME = process.env.DB_NAME || 'watt_consultoria';
+  const COLLECTION_NAME = 'fichas_semanais';
+
+  if (!MONGODB_URI) {
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: 'Configuração do MongoDB não encontrada' })
+    };
+  }
+
+  let client;
+
+  try {
+    // Parse dos dados recebidos
+    const data = JSON.parse(event.body);
+
+    // Validação básica
+    if (!data.colaborador || !data.periodo || !data.tarefas) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ error: 'Dados incompletos' })
+      };
+    }
+
+    // Conecta ao MongoDB
+    client = await MongoClient.connect(MONGODB_URI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true
+    });
+
+    const db = client.db(DB_NAME);
+    const collection = db.collection(COLLECTION_NAME);
+
+    // Insere o documento
+    const result = await collection.insertOne({
+      ...data,
+      criadoEm: new Date(),
+      ip: event.headers['x-forwarded-for'] || event.headers['client-ip']
+    });
+
+    return {
+      statusCode: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      },
+      body: JSON.stringify({
+        success: true,
+        id: result.insertedId,
+        message: 'Ficha semanal salva com sucesso!'
+      })
+    };
+
+  } catch (error) {
+    console.error('Erro ao salvar no MongoDB:', error);
+    
+    return {
+      statusCode: 500,
+      body: JSON.stringify({
+        success: false,
+        error: 'Erro ao salvar dados',
+        details: error.message
+      })
+    };
+
+  } finally {
+    // Fecha a conexão
+    if (client) {
+      await client.close();
+    }
+  }
+};

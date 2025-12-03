@@ -1,0 +1,8 @@
+{
+  "name": "ficha-semanal",
+  "version": "1.0.0",
+  "description": "Sistema de Acompanhamento Semanal - Watt Consultoria",
+  "dependencies": {
+    "mongodb": "^6.3.0"
+  }
+}

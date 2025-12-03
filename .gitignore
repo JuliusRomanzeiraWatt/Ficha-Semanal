@@ -1,0 +1,17 @@
+# Variáveis de ambiente
+.env
+.env.local
+
+# Node modules
+node_modules/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Sistema operacional
+.DS_Store
+Thumbs.db
+
+# Netlify
+.netlify/
