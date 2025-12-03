@@ -432,31 +432,6 @@
                 }
             };
 
-            const exportToJSON = () => {
-                const data = {
-                    colaborador: {
-                        nome: formData.nome,
-                        cpf: formData.cpf,
-                        cargo: formData.cargo
-                    },
-                    periodo: {
-                        dataInicio: formData.dataInicio,
-                        dataFim: formData.dataFim
-                    },
-                    tarefas: tasks.map(task => ({
-                        id: task.id,
-                        descricao: task.text,
-                        selecionada: task.selected
-                    })),
-                    dificuldades: formData.dificuldades,
-                    dataGeracao: new Date().toISOString()
-                };
-
-                } finally {
-                    setSalvando(false);
-                }
-            };
-
             return (
                 <div className="min-h-screen pb-10">
                     {/* Barra Superior */}
