@@ -172,6 +172,8 @@
             // Estado para feedback visual imediato
             const [cpfInvalid, setCpfInvalid] = useState(false);
             const [nomeInvalid, setNomeInvalid] = useState(false);
+            const [dataFimInvalid, setDataFimInvalid] = useState(false);
+            const [dataFimErrorMsg, setDataFimErrorMsg] = useState('');
 
             // Estado para limites de data
             const [dataLimites, setDataLimites] = useState({
@@ -229,7 +231,52 @@
                     if (nomeInvalid) setNomeInvalid(false);
                 }
 
+                // Validação de Data Fim em tempo real
+                if (name === 'dataFim') {
+                    if (dataFimInvalid) {
+                        setDataFimInvalid(false);
+                        setDataFimErrorMsg('');
+                    }
+                    
+                    // Valida apenas se houver valor e data de início
+                    if (value && formData.dataInicio) {
+                        const inicio = new Date(formData.dataInicio);
+                        const fim = new Date(value);
+                        const diffTime = Math.abs(fim - inicio);
+                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                        if (fim < inicio) {
+                            setDataFimInvalid(true);
+                            setDataFimErrorMsg('Data fim não pode ser anterior à data início');
+                        } else if (diffDays > 7) {
+                            setDataFimInvalid(true);
+                            setDataFimErrorMsg('Período máximo é de 7 dias');
+                        }
+                    }
+                }
+
                 setFormData(prev => ({ ...prev, [name]: value }));
+            };
+
+            // Valida Data Fim ao sair do campo (onBlur)
+            const handleDataFimBlur = () => {
+                if (formData.dataFim && formData.dataInicio) {
+                    const inicio = new Date(formData.dataInicio);
+                    const fim = new Date(formData.dataFim);
+                    const diffTime = Math.abs(fim - inicio);
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                    if (fim < inicio) {
+                        setDataFimInvalid(true);
+                        setDataFimErrorMsg('Data fim não pode ser anterior à data início');
+                    } else if (diffDays > 7) {
+                        setDataFimInvalid(true);
+                        setDataFimErrorMsg('Período máximo é de 7 dias');
+                    } else {
+                        setDataFimInvalid(false);
+                        setDataFimErrorMsg('');
+                    }
+                }
             };
 
             // Valida CPF ao sair do campo (onBlur)
@@ -434,9 +481,11 @@
                                         max={dataLimites.maxFim}
                                         disabled={!formData.dataInicio}
                                         onChange={handleInputChange}
-                                        className="w-full bg-white border border-gray-300 rounded px-3 py-2 md:px-2 md:py-1 text-gray-800 text-sm focus:outline-none focus:border-blue-500 disabled:bg-gray-200 disabled:text-gray-400"
+                                        onBlur={handleDataFimBlur}
+                                        className={`w-full bg-white border rounded px-3 py-2 md:px-2 md:py-1 text-gray-800 text-sm focus:outline-none focus:border-blue-500 disabled:bg-gray-200 disabled:text-gray-400 ${dataFimInvalid ? 'border-red-500' : 'border-gray-300'}`}
                                         title={!formData.dataInicio ? "Selecione a Data de Início primeiro" : "Máximo 7 dias após o início"}
                                     />
+                                    {dataFimInvalid && <p className="text-red-500 text-[10px] font-bold mt-1">{dataFimErrorMsg}</p>}
                                 </div>
                             </div>
                         </div>
