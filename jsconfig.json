@@ -2,7 +2,8 @@
   "compilerOptions": {
     "checkJs": false,
     "module": "commonjs",
-    "target": "ES6"
+    "target": "ES6",
+    "skipLibCheck": true
   },
   "exclude": [
     "node_modules",

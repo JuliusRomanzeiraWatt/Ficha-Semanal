@@ -46,17 +46,26 @@ exports.handler = async (event, context) => {
       body: JSON.stringify({ 
         success: false,
         error: 'Configuração do MongoDB não encontrada',
-        message: 'Por favor, configure a variável MONGODB_URI no Netlify.\n\n1. Vá em Site settings > Environment variables\n2. Adicione MONGODB_URI com seu link do MongoDB Atlas'
+        message: 'MONGODB_URI não configurada nas variáveis de ambiente do Netlify'
       })
     };
   }
 
-  // Adiciona parâmetros necessários ao URI se não estiverem presentes
-  let mongoUri = MONGODB_URI;
+  // Garante que o URI tenha os parâmetros necessários
+  let mongoUri = MONGODB_URI.trim();
+  
+  // Remove barra final se houver
+  if (mongoUri.endsWith('/') && !mongoUri.includes('?')) {
+    mongoUri = mongoUri.slice(0, -1);
+  }
+  
+  // Adiciona parâmetros se não estiverem presentes
   if (!mongoUri.includes('retryWrites')) {
     const separator = mongoUri.includes('?') ? '&' : '?';
-    mongoUri += `${separator}retryWrites=true&w=majority`;
+    mongoUri += `${separator}retryWrites=true&w=majority&appName=Cluster0`;
   }
+
+  console.log('Connecting to MongoDB...');
 
   let client;
 
@@ -78,18 +87,17 @@ exports.handler = async (event, context) => {
 
     // Conecta ao MongoDB com configurações otimizadas para Netlify
     client = new MongoClient(mongoUri, {
-      serverSelectionTimeoutMS: 10000,
-      connectTimeoutMS: 10000,
-      socketTimeoutMS: 20000,
+      serverSelectionTimeoutMS: 30000,
+      connectTimeoutMS: 30000,
+      socketTimeoutMS: 45000,
       maxPoolSize: 1,
-      minPoolSize: 0,
       retryWrites: true,
-      retryReads: true,
-      tls: true,
-      tlsAllowInvalidCertificates: false
+      retryReads: true
     });
     
+    console.log('Attempting to connect...');
     await client.connect();
+    console.log('Connected successfully!');
 
     const db = client.db(DB_NAME);
     const collection = db.collection(COLLECTION_NAME);
@@ -114,12 +122,21 @@ exports.handler = async (event, context) => {
   } catch (error) {
     console.error('Erro ao salvar no MongoDB:', error);
     
+    // Mensagem de erro mais específica
+    let errorMessage = 'Erro ao conectar com o banco de dados';
+    
+    if (error.message?.includes('MongoServerSelectionError')) {
+      errorMessage = 'Não foi possível conectar ao MongoDB. Verifique: 1) Se o IP está liberado no MongoDB Atlas (Network Access), 2) Se as credenciais estão corretas';
+    } else if (error.message?.includes('Authentication failed')) {
+      errorMessage = 'Erro de autenticação. Verifique usuário e senha do MongoDB';
+    }
+    
     return {
       statusCode: 500,
       headers,
       body: JSON.stringify({
         success: false,
-        error: 'Erro ao salvar dados',
+        error: errorMessage,
         message: error.message,
         details: error.toString()
       })
