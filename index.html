@@ -406,7 +406,13 @@
                 };
 
                 try {
-                    const response = await fetch('/.netlify/functions/salvar-ficha', {
+                    // Para testar localmente, use: http://localhost:3000/.netlify/functions/salvar-ficha
+                    // Para produção no Netlify, use: /.netlify/functions/salvar-ficha
+                    const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+                        ? 'http://localhost:3000/.netlify/functions/salvar-ficha'
+                        : '/.netlify/functions/salvar-ficha';
+                    
+                    const response = await fetch(API_URL, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',

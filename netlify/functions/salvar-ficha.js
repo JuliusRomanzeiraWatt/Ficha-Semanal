@@ -69,11 +69,13 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // Conecta ao MongoDB
-    client = await MongoClient.connect(MONGODB_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true
+    // Conecta ao MongoDB (removendo opções depreciadas)
+    client = new MongoClient(MONGODB_URI, {
+      serverSelectionTimeoutMS: 5000,
+      connectTimeoutMS: 10000
     });
+    
+    await client.connect();
 
     const db = client.db(DB_NAME);
     const collection = db.collection(COLLECTION_NAME);
