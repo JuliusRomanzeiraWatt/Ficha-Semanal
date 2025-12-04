@@ -89,44 +89,78 @@ exports.handler = async (event, context) => {
 
     // Endpoint GET: Retorna dados em formato tabular para Power BI
     if (event.httpMethod === 'GET') {
-      const dados = await collection.find({}).sort({ criadoEm: -1 }).toArray();
-      
-      // Transforma os dados em formato tabular (normalizado)
-      const dadosTabulares = [];
-      
-      dados.forEach(doc => {
-        // Para cada tarefa, cria uma linha na tabela
-        doc.tarefas.forEach(tarefa => {
-          dadosTabulares.push({
-            ficha_id: doc._id.toString(),
-            colaborador_nome: doc.colaborador.nome,
-            colaborador_cpf: doc.colaborador.cpf,
-            periodo_inicio: doc.periodo.inicio,
-            periodo_fim: doc.periodo.fim,
-            tarefa_numero: tarefa.numero,
-            tarefa_descricao: tarefa.descricao,
-            tarefa_segunda: tarefa.dias.segunda ? 1 : 0,
-            tarefa_terca: tarefa.dias.terca ? 1 : 0,
-            tarefa_quarta: tarefa.dias.quarta ? 1 : 0,
-            tarefa_quinta: tarefa.dias.quinta ? 1 : 0,
-            tarefa_sexta: tarefa.dias.sexta ? 1 : 0,
-            tarefa_sabado: tarefa.dias.sabado ? 1 : 0,
-            tarefa_domingo: tarefa.dias.domingo ? 1 : 0,
-            data_criacao: doc.criadoEm,
-            ip_origem: doc.ip || null
+      try {
+        const dados = await collection.find({}).sort({ criadoEm: -1 }).toArray();
+        
+        console.log(`Total de documentos encontrados: ${dados.length}`);
+        
+        // Transforma os dados em formato tabular (normalizado)
+        const dadosTabulares = [];
+        
+        dados.forEach(doc => {
+          // Verifica se o documento tem a estrutura esperada
+          if (!doc.tarefas || !Array.isArray(doc.tarefas)) {
+            console.warn(`Documento ${doc._id} não possui campo tarefas válido`);
+            return;
+          }
+          
+          if (!doc.colaborador || !doc.periodo) {
+            console.warn(`Documento ${doc._id} está com dados incompletos`);
+            return;
+          }
+          
+          // Para cada tarefa, cria uma linha na tabela
+          doc.tarefas.forEach(tarefa => {
+            try {
+              dadosTabulares.push({
+                ficha_id: doc._id.toString(),
+                colaborador_nome: doc.colaborador?.nome || '',
+                colaborador_cpf: doc.colaborador?.cpf || '',
+                periodo_inicio: doc.periodo?.inicio || '',
+                periodo_fim: doc.periodo?.fim || '',
+                tarefa_numero: tarefa.numero || 0,
+                tarefa_descricao: tarefa.descricao || '',
+                tarefa_segunda: tarefa.dias?.segunda ? 1 : 0,
+                tarefa_terca: tarefa.dias?.terca ? 1 : 0,
+                tarefa_quarta: tarefa.dias?.quarta ? 1 : 0,
+                tarefa_quinta: tarefa.dias?.quinta ? 1 : 0,
+                tarefa_sexta: tarefa.dias?.sexta ? 1 : 0,
+                tarefa_sabado: tarefa.dias?.sabado ? 1 : 0,
+                tarefa_domingo: tarefa.dias?.domingo ? 1 : 0,
+                data_criacao: doc.criadoEm || new Date(),
+                ip_origem: doc.ip || null
+              });
+            } catch (tarefaError) {
+              console.error(`Erro ao processar tarefa:`, tarefaError);
+            }
           });
         });
-      });
-      
-      return {
-        statusCode: 200,
-        headers,
-        body: JSON.stringify({
-          success: true,
-          total_registros: dadosTabulares.length,
-          dados: dadosTabulares
-        })
-      };
+        
+        console.log(`Total de registros tabulares gerados: ${dadosTabulares.length}`);
+        
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({
+            success: true,
+            total_registros: dadosTabulares.length,
+            total_fichas: dados.length,
+            dados: dadosTabulares
+          })
+        };
+      } catch (getError) {
+        console.error('Erro ao buscar dados:', getError);
+        return {
+          statusCode: 500,
+          headers,
+          body: JSON.stringify({
+            success: false,
+            error: 'Erro ao buscar dados',
+            message: getError.message,
+            details: getError.toString()
+          })
+        };
+      }
     }
 
     // Endpoint POST: Salva nova ficha (código existente)
