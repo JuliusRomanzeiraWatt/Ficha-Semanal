@@ -1,4 +1,4 @@
-// Função Serverless do Netlify para salvar dados no MongoDB
+// Função Serverless do Netlify para salvar e consultar dados no MongoDB
 const { MongoClient } = require('mongodb');
 
 exports.handler = async (event, context) => {
@@ -7,7 +7,7 @@ exports.handler = async (event, context) => {
     'Content-Type': 'application/json',
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS'
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS'
   };
 
   // Aceita OPTIONS para CORS
@@ -19,8 +19,8 @@ exports.handler = async (event, context) => {
     };
   }
 
-  // Apenas aceita POST
-  if (event.httpMethod !== 'POST') {
+  // Valida método HTTP
+  if (event.httpMethod !== 'POST' && event.httpMethod !== 'GET') {
     return {
       statusCode: 405,
       headers,
@@ -70,21 +70,6 @@ exports.handler = async (event, context) => {
   let client;
 
   try {
-    // Parse dos dados recebidos
-    const data = JSON.parse(event.body);
-
-    // Validação básica
-    if (!data.colaborador || !data.periodo || !data.tarefas) {
-      return {
-        statusCode: 400,
-        headers,
-        body: JSON.stringify({ 
-          success: false,
-          error: 'Dados incompletos' 
-        })
-      };
-    }
-
     // Conecta ao MongoDB com configurações otimizadas para Netlify
     client = new MongoClient(mongoUri, {
       serverSelectionTimeoutMS: 30000,
@@ -101,6 +86,64 @@ exports.handler = async (event, context) => {
 
     const db = client.db(DB_NAME);
     const collection = db.collection(COLLECTION_NAME);
+
+    // Endpoint GET: Retorna dados em formato tabular para Power BI
+    if (event.httpMethod === 'GET') {
+      const dados = await collection.find({}).sort({ criadoEm: -1 }).toArray();
+      
+      // Transforma os dados em formato tabular (normalizado)
+      const dadosTabulares = [];
+      
+      dados.forEach(doc => {
+        // Para cada tarefa, cria uma linha na tabela
+        doc.tarefas.forEach(tarefa => {
+          dadosTabulares.push({
+            ficha_id: doc._id.toString(),
+            colaborador_nome: doc.colaborador.nome,
+            colaborador_cpf: doc.colaborador.cpf,
+            periodo_inicio: doc.periodo.inicio,
+            periodo_fim: doc.periodo.fim,
+            tarefa_numero: tarefa.numero,
+            tarefa_descricao: tarefa.descricao,
+            tarefa_segunda: tarefa.dias.segunda ? 1 : 0,
+            tarefa_terca: tarefa.dias.terca ? 1 : 0,
+            tarefa_quarta: tarefa.dias.quarta ? 1 : 0,
+            tarefa_quinta: tarefa.dias.quinta ? 1 : 0,
+            tarefa_sexta: tarefa.dias.sexta ? 1 : 0,
+            tarefa_sabado: tarefa.dias.sabado ? 1 : 0,
+            tarefa_domingo: tarefa.dias.domingo ? 1 : 0,
+            data_criacao: doc.criadoEm,
+            ip_origem: doc.ip || null
+          });
+        });
+      });
+      
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({
+          success: true,
+          total_registros: dadosTabulares.length,
+          dados: dadosTabulares
+        })
+      };
+    }
+
+    // Endpoint POST: Salva nova ficha (código existente)
+    // Parse dos dados recebidos
+    const data = JSON.parse(event.body);
+
+    // Validação básica
+    if (!data.colaborador || !data.periodo || !data.tarefas) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ 
+          success: false,
+          error: 'Dados incompletos' 
+        })
+      };
+    }
 
     // Insere o documento
     const result = await collection.insertOne({
