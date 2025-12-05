@@ -12,18 +12,18 @@ DB_NAME=watt_consultoria
 
 ### 2. Autenticação JWT
 ```
-JWT_SECRET=de2ee349c90e535ae2d45fc80347a9bc86fd28fff106a03ab028758d4f583663af7d226c2adf1a5da3a8fd249c7a8e0764e42858f114374ce223493efeb460ff
+JWT_SECRET=<copie do arquivo .env local>
 ```
 
 ### 3. Secret para Requisitar Tokens (NOVO!)
 ```
-TOKEN_REQUEST_SECRET=943adfcd043077ab0517d75983364480d2fdce49b6cfef7dcdd313fdde937271
+TOKEN_REQUEST_SECRET=<copie do arquivo .env local>
 ```
 
 ### 4. APIs Externas (Power BI, etc)
 ```
-API_SECRET_KEY=cd54577f5934b024a1bbaa37e2e517751321771712775230e16b1306082cbd84
-POWERBI_API_KEY=a164eb9c1884e0160a8cf147771fd3cfaca723ae3df2b47a0a7dbb3eecf6bb1c
+API_SECRET_KEY=<copie do arquivo .env local>
+POWERBI_API_KEY=<copie do arquivo .env local>
 ```
 
 ## ⚠️ Importante
@@ -43,7 +43,7 @@ Este arquivo contém o `TOKEN_REQUEST_SECRET` e deve estar presente no Netlify:
 **Conteúdo do arquivo:**
 ```javascript
 window.TOKEN_CONFIG = {
-  secret: '943adfcd043077ab0517d75983364480d2fdce49b6cfef7dcdd313fdde937271'
+  secret: '<copie TOKEN_REQUEST_SECRET do .env>'
 };
 ```
 
