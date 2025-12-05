@@ -407,8 +407,19 @@
                 };
 
                 try {
-                    // Para testar localmente, use: http://localhost:3000/.netlify/functions/salvar-ficha
-                    // Para produção no Netlify, use: /.netlify/functions/salvar-ficha
+                    // 🔐 Passo 1: Obter token JWT
+                    const TOKEN_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+                        ? 'http://localhost:3000/.netlify/functions/get-token'
+                        : '/.netlify/functions/get-token';
+                    
+                    const tokenResponse = await fetch(TOKEN_URL);
+                    const tokenData = await tokenResponse.json();
+                    
+                    if (!tokenData.success || !tokenData.token) {
+                        throw new Error('Falha ao obter token de autenticação');
+                    }
+
+                    // 🔐 Passo 2: Enviar dados com token JWT
                     const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
                         ? 'http://localhost:3000/.netlify/functions/salvar-ficha'
                         : '/.netlify/functions/salvar-ficha';
@@ -417,6 +428,7 @@
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${tokenData.token}` // ← JWT aqui
                         },
                         body: JSON.stringify(data)
                     });

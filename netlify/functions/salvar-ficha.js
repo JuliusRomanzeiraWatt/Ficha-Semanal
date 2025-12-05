@@ -1,5 +1,55 @@
 // Função Serverless do Netlify para salvar e consultar dados no MongoDB
 const { MongoClient } = require('mongodb');
+const crypto = require('crypto');
+
+// 🔐 Funções JWT Simplificadas (sem dependências externas)
+function base64UrlEncode(str) {
+  return Buffer.from(str)
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=/g, '');
+}
+
+function base64UrlDecode(str) {
+  str = str.replace(/-/g, '+').replace(/_/g, '/');
+  return Buffer.from(str, 'base64').toString('utf8');
+}
+
+function createHmacSignature(data, secret) {
+  return crypto.createHmac('sha256', secret).update(data).digest('base64url');
+}
+
+function verifyJWT(token, secret) {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+
+    const [headerB64, payloadB64, signature] = parts;
+    
+    // Verifica assinatura
+    const expectedSignature = createHmacSignature(`${headerB64}.${payloadB64}`, secret);
+    
+    if (signature !== expectedSignature) {
+      console.warn('⚠️ JWT signature invalid');
+      return null;
+    }
+
+    // Decodifica payload
+    const payload = JSON.parse(base64UrlDecode(payloadB64));
+    
+    // Verifica expiração
+    if (payload.exp && Date.now() >= payload.exp * 1000) {
+      console.warn('⚠️ JWT expired');
+      return null;
+    }
+
+    return payload;
+  } catch (error) {
+    console.error('JWT verification error:', error);
+    return null;
+  }
+}
 
 exports.handler = async (event, context) => {
   // Headers CORS
@@ -29,6 +79,55 @@ exports.handler = async (event, context) => {
         error: 'Método não permitido' 
       })
     };
+  }
+
+  // 🔐 PROTEÇÃO JWT: Valida token em requisições POST
+  if (event.httpMethod === 'POST') {
+    const authHeader = event.headers['authorization'];
+    const token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
+
+    if (!token) {
+      console.warn('⚠️ Requisição bloqueada - JWT ausente');
+      return {
+        statusCode: 401,
+        headers,
+        body: JSON.stringify({ 
+          success: false,
+          error: 'Token de autenticação necessário' 
+        })
+      };
+    }
+
+    // Valida JWT
+    const jwtSecret = process.env.JWT_SECRET || 'default-secret-change-in-production';
+    const payload = verifyJWT(token, jwtSecret);
+
+    if (!payload) {
+      console.warn('⚠️ Requisição bloqueada - JWT inválido ou expirado');
+      return {
+        statusCode: 401,
+        headers,
+        body: JSON.stringify({ 
+          success: false,
+          error: 'Token inválido ou expirado' 
+        })
+      };
+    }
+
+    // Verifica se o token é para este endpoint
+    if (payload.aud !== 'ficha-semanal' || payload.action !== 'submit') {
+      console.warn('⚠️ JWT com audience/action incorreto');
+      return {
+        statusCode: 403,
+        headers,
+        body: JSON.stringify({ 
+          success: false,
+          error: 'Token não autorizado para esta ação' 
+        })
+      };
+    }
+
+    console.log('✅ JWT válido para usuário:', payload.sub);
   }
 
   // Conexão com MongoDB
@@ -167,7 +266,7 @@ exports.handler = async (event, context) => {
     // Parse dos dados recebidos
     const data = JSON.parse(event.body);
 
-    // Validação básica
+    // 🛡️ PROTEÇÃO: Validação rigorosa dos dados
     if (!data.colaborador || !data.periodo || !data.tarefas) {
       return {
         statusCode: 400,
@@ -175,6 +274,50 @@ exports.handler = async (event, context) => {
         body: JSON.stringify({ 
           success: false,
           error: 'Dados incompletos' 
+        })
+      };
+    }
+
+    // 🛡️ PROTEÇÃO: Sanitização - Remove scripts e caracteres perigosos
+    const sanitize = (str) => {
+      if (typeof str !== 'string') return str;
+      return str
+        .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+        .replace(/<[^>]+>/g, '')
+        .replace(/[<>]/g, '')
+        .trim();
+    };
+
+    // Sanitiza os dados do colaborador
+    if (data.colaborador) {
+      data.colaborador.nome = sanitize(data.colaborador.nome);
+      data.colaborador.cpf = sanitize(data.colaborador.cpf);
+      data.colaborador.cargo = sanitize(data.colaborador.cargo);
+    }
+
+    // Sanitiza dificuldades
+    if (data.dificuldades) {
+      data.dificuldades = sanitize(data.dificuldades);
+    }
+
+    // Sanitiza tarefas
+    if (Array.isArray(data.tarefas)) {
+      data.tarefas = data.tarefas.map(tarefa => ({
+        ...tarefa,
+        descricao: sanitize(tarefa.descricao)
+      }));
+    }
+
+    // 🛡️ PROTEÇÃO: Limita tamanho dos dados (previne ataques de payload gigante)
+    const payloadSize = JSON.stringify(data).length;
+    if (payloadSize > 100000) { // 100KB max
+      console.warn('⚠️ Payload muito grande bloqueado:', payloadSize, 'bytes');
+      return {
+        statusCode: 413,
+        headers,
+        body: JSON.stringify({ 
+          success: false,
+          error: 'Dados muito grandes' 
         })
       };
     }
