@@ -25,14 +25,15 @@ Adicionamos **3 camadas de segurança** nas APIs do projeto:
 
 ## 🔑 API Keys Geradas
 
-Estas chaves foram geradas automaticamente usando criptografia segura:
+⚠️ **IMPORTANTE**: As chaves reais estão no arquivo `.env` (que não é versionado no Git por segurança).
 
+Exemplo de formato:
 ```
-API_SECRET_KEY=18d4a7d2c80a0397efbdd423864c4d36b25deb77986b9001a432602fc98ec78b
-POWERBI_API_KEY=c59a2ff2ea6c4dbb595172ec1333dfa6892efa2695758c57b70101c23ede4b0f
+API_SECRET_KEY=<chave-de-64-caracteres-hexadecimais>
+POWERBI_API_KEY=<chave-de-64-caracteres-hexadecimais>
 ```
 
-> ⚠️ **IMPORTANTE**: Guarde estas chaves em local seguro! Você precisará configurá-las no Netlify.
+> ⚠️ **NUNCA** commite as chaves reais no Git! Use apenas variáveis de ambiente.
 
 ---
 
@@ -46,12 +47,13 @@ POWERBI_API_KEY=c59a2ff2ea6c4dbb595172ec1333dfa6892efa2695758c57b70101c23ede4b0f
 
 ### Passo 2: Adicione as Novas Variáveis
 
-Clique em **Add a variable** e adicione cada uma:
+Clique em **Add a variable** e adicione cada uma (use as chaves do arquivo `.env` local):
 
 | Nome da Variável | Valor |
 |------------------|-------|
-| `API_SECRET_KEY` | `18d4a7d2c80a0397efbdd423864c4d36b25deb77986b9001a432602fc98ec78b` |
-| `POWERBI_API_KEY` | `c59a2ff2ea6c4dbb595172ec1333dfa6892efa2695758c57b70101c23ede4b0f` |
+| `API_SECRET_KEY` | Copie do arquivo `.env` |
+| `POWERBI_API_KEY` | Copie do arquivo `.env` |
+| `JWT_SECRET` | Copie do arquivo `.env` |
 
 > ✅ As variáveis `MONGODB_URI` e `DB_NAME` já devem estar configuradas.
 
@@ -71,7 +73,7 @@ Após adicionar as variáveis:
 ```bash
 curl -X POST https://seu-site.netlify.app/.netlify/functions/api-fichas \
   -H "Content-Type: application/json" \
-  -H "x-api-key: 18d4a7d2c80a0397efbdd423864c4d36b25deb77986b9001a432602fc98ec78b" \
+  -H "x-api-key: SUA_API_SECRET_KEY_AQUI" \
   -d '{
     "nome": "João Silva",
     "cpf": "123.456.789-00",
@@ -84,7 +86,7 @@ curl -X POST https://seu-site.netlify.app/.netlify/functions/api-fichas \
 
 ```bash
 curl -X GET https://seu-site.netlify.app/.netlify/functions/api-powerbi \
-  -H "x-api-key: c59a2ff2ea6c4dbb595172ec1333dfa6892efa2695758c57b70101c23ede4b0f"
+  -H "x-api-key: SUA_POWERBI_API_KEY_AQUI"
 ```
 
 ### Testar API Interna (sem autenticação)
@@ -143,4 +145,4 @@ O endpoint do Power BI mudou:
 
 Não esqueça de:
 1. Atualizar a URL no Power BI
-2. Adicionar o header: `x-api-key: c59a2ff2ea6c4dbb595172ec1333dfa6892efa2695758c57b70101c23ede4b0f`
+2. Adicionar o header: `x-api-key: SUA_POWERBI_API_KEY_AQUI`

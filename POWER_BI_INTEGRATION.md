@@ -13,7 +13,7 @@ A API agora retorna dados em formato tabular normalizado, pronto para consumo no
 **Autenticação:** Header `x-api-key` obrigatório
 
 ```http
-x-api-key: c59a2ff2ea6c4dbb595172ec1333dfa6892efa2695758c57b70101c23ede4b0f
+x-api-key: SUA_POWERBI_API_KEY_AQUI
 ```
 
 ### ⚠️ Endpoint Legado (Sem Proteção)

@@ -105,9 +105,9 @@ Configure estas variáveis no Netlify:
 |----------|-------|-----|
 | `MONGODB_URI` | `mongodb+srv://...` | Conexão MongoDB |
 | `DB_NAME` | `watt_consultoria` | Nome do banco |
-| `JWT_SECRET` | `e8c7d6f91f57bde...` | Assinatura JWT (512 bits) |
-| `API_SECRET_KEY` | `18d4a7d2c80a03...` | API externa (escrita) |
-| `POWERBI_API_KEY` | `c59a2ff2ea6c4d...` | API Power BI (leitura) |
+| `JWT_SECRET` | Copie do `.env` | Assinatura JWT (512 bits) |
+| `API_SECRET_KEY` | Copie do `.env` | API externa (escrita) |
+| `POWERBI_API_KEY` | Copie do `.env` | API Power BI (leitura) |
 
 ---
 
@@ -163,7 +163,7 @@ API externa (requer API_SECRET_KEY)
 
 **Headers:**
 ```
-x-api-key: 18d4a7d2c80a0397efbdd423864c4d36b25deb77986b9001a432602fc98ec78b
+x-api-key: SUA_API_SECRET_KEY_AQUI
 ```
 
 ### 4. `GET /api-powerbi` 🔒
@@ -171,7 +171,7 @@ Power BI (requer POWERBI_API_KEY)
 
 **Headers:**
 ```
-x-api-key: c59a2ff2ea6c4dbb595172ec1333dfa6892efa2695758c57b70101c23ede4b0f
+x-api-key: SUA_POWERBI_API_KEY_AQUI
 ```
 
 ---
