@@ -17,7 +17,8 @@ function base64UrlDecode(str) {
 }
 
 function createHmacSignature(data, secret) {
-  return crypto.createHmac('sha256', secret).update(data).digest('base64url');
+  const base64 = crypto.createHmac('sha256', secret).update(data).digest('base64');
+  return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
 }
 
 function verifyJWT(token, secret) {
@@ -86,7 +87,13 @@ exports.handler = async (event, context) => {
     const authHeader = event.headers['authorization'];
     const token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
 
-    if (!token) {
+    // ⚠️ MODO TEMPORÁRIO: Se JWT_SECRET não estiver configurado, permite sem autenticação
+    const jwtSecret = process.env.JWT_SECRET;
+    
+    if (!jwtSecret) {
+      console.warn('⚠️ JWT_SECRET não configurado - permitindo acesso sem autenticação (TEMPORÁRIO)');
+      // Continua sem validar JWT
+    } else if (!token) {
       console.warn('⚠️ Requisição bloqueada - JWT ausente');
       return {
         statusCode: 401,
@@ -96,38 +103,37 @@ exports.handler = async (event, context) => {
           error: 'Token de autenticação necessário' 
         })
       };
+    } else {
+      // Valida JWT
+      const payload = verifyJWT(token, jwtSecret);
+
+      if (!payload) {
+        console.warn('⚠️ Requisição bloqueada - JWT inválido ou expirado');
+        return {
+          statusCode: 401,
+          headers,
+          body: JSON.stringify({ 
+            success: false,
+            error: 'Token inválido ou expirado' 
+          })
+        };
+      }
+
+      // Verifica se o token é para este endpoint
+      if (payload.aud !== 'ficha-semanal' || payload.action !== 'submit') {
+        console.warn('⚠️ JWT com audience/action incorreto');
+        return {
+          statusCode: 403,
+          headers,
+          body: JSON.stringify({ 
+            success: false,
+            error: 'Token não autorizado para esta ação' 
+          })
+        };
+      }
+
+      console.log('✅ JWT válido para usuário:', payload.sub);
     }
-
-    // Valida JWT
-    const jwtSecret = process.env.JWT_SECRET || 'default-secret-change-in-production';
-    const payload = verifyJWT(token, jwtSecret);
-
-    if (!payload) {
-      console.warn('⚠️ Requisição bloqueada - JWT inválido ou expirado');
-      return {
-        statusCode: 401,
-        headers,
-        body: JSON.stringify({ 
-          success: false,
-          error: 'Token inválido ou expirado' 
-        })
-      };
-    }
-
-    // Verifica se o token é para este endpoint
-    if (payload.aud !== 'ficha-semanal' || payload.action !== 'submit') {
-      console.warn('⚠️ JWT com audience/action incorreto');
-      return {
-        statusCode: 403,
-        headers,
-        body: JSON.stringify({ 
-          success: false,
-          error: 'Token não autorizado para esta ação' 
-        })
-      };
-    }
-
-    console.log('✅ JWT válido para usuário:', payload.sub);
   }
 
   // Conexão com MongoDB

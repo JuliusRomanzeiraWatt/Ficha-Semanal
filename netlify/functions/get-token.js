@@ -18,10 +18,16 @@ function createJWT(payload, secret) {
   const headerB64 = base64UrlEncode(JSON.stringify(header));
   const payloadB64 = base64UrlEncode(JSON.stringify(payload));
   
-  const signature = crypto
+  const signatureBase64 = crypto
     .createHmac('sha256', secret)
     .update(`${headerB64}.${payloadB64}`)
-    .digest('base64url');
+    .digest('base64');
+  
+  // Converte base64 para base64url
+  const signature = signatureBase64
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=/g, '');
 
   return `${headerB64}.${payloadB64}.${signature}`;
 }
