@@ -4,11 +4,25 @@
 
 A API agora retorna dados em formato tabular normalizado, pronto para consumo no Power BI através do driver ODBC ou Web Connector.
 
-## Endpoint de Dados
+## 🔒 Endpoints de Dados
 
-**URL:** `https://seu-site.netlify.app/.netlify/functions/salvar-ficha`
+### ✅ Endpoint Protegido (RECOMENDADO)
 
-**Método:** `GET`
+**URL:** `https://seu-site.netlify.app/.netlify/functions/api-powerbi`  
+**Método:** `GET`  
+**Autenticação:** Header `x-api-key` obrigatório
+
+```http
+x-api-key: c59a2ff2ea6c4dbb595172ec1333dfa6892efa2695758c57b70101c23ede4b0f
+```
+
+### ⚠️ Endpoint Legado (Sem Proteção)
+
+**URL:** `https://seu-site.netlify.app/.netlify/functions/salvar-ficha`  
+**Método:** `GET`  
+**Autenticação:** Não requer
+
+> **Recomendação**: Use o endpoint `/api-powerbi` com autenticação para maior segurança.
 
 ## Estrutura da Tabela Retornada
 
