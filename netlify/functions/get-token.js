@@ -74,6 +74,22 @@ exports.handler = async (event, context) => {
     };
   }
 
+  // 🔐 PROTEÇÃO: Exige secret do frontend para obter token
+  const tokenRequestSecret = process.env.TOKEN_REQUEST_SECRET;
+  const providedSecret = event.headers['x-token-secret'] || '';
+  
+  if (tokenRequestSecret && providedSecret !== tokenRequestSecret) {
+    console.warn('⚠️ Requisição de token bloqueada - secret inválido ou ausente');
+    return {
+      statusCode: 401,
+      headers,
+      body: JSON.stringify({ 
+        success: false,
+        error: 'Senha de requisição inválida' 
+      })
+    };
+  }
+
   try {
     const jwtSecret = process.env.JWT_SECRET || 'default-secret-change-in-production';
     

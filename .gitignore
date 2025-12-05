@@ -2,6 +2,9 @@
 .env
 .env.local
 
+# Configuração de token (contém secret)
+token-config.js
+
 # Node modules
 node_modules/
 

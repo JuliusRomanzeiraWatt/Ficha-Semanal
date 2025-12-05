@@ -17,6 +17,9 @@
     
     <!-- Babel -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Configuração de Token (Secret para requisitar JWT) -->
+    <script src="token-config.js"></script>
 
     <!-- Fontes -->
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
@@ -412,7 +415,16 @@
                         ? 'http://localhost:3000/.netlify/functions/get-token'
                         : '/.netlify/functions/get-token';
                     
-                    const tokenResponse = await fetch(TOKEN_URL);
+                    // Verifica se o secret foi configurado
+                    if (!window.TOKEN_CONFIG?.secret) {
+                        throw new Error('Configuração de token não encontrada. Verifique o arquivo token-config.js');
+                    }
+                    
+                    const tokenResponse = await fetch(TOKEN_URL, {
+                        headers: {
+                            'X-Token-Secret': window.TOKEN_CONFIG.secret
+                        }
+                    });
                     const tokenData = await tokenResponse.json();
                     
                     if (!tokenData.success || !tokenData.token) {
