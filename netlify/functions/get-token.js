@@ -52,6 +52,28 @@ exports.handler = async (event, context) => {
     };
   }
 
+  // 🔒 PROTEÇÃO: Verifica origem da requisição
+  const referer = event.headers['referer'] || event.headers['origin'] || '';
+  const allowedDomains = [
+    'fichasemanalwatt.netlify.app',
+    'localhost',
+    '127.0.0.1'
+  ];
+  
+  const isValidOrigin = allowedDomains.some(domain => referer.includes(domain));
+  
+  if (!isValidOrigin) {
+    console.warn('⚠️ Requisição de token bloqueada - origem inválida:', referer);
+    return {
+      statusCode: 403,
+      headers,
+      body: JSON.stringify({ 
+        success: false,
+        error: 'Acesso negado. Este endpoint só pode ser acessado através do formulário oficial.' 
+      })
+    };
+  }
+
   try {
     const jwtSecret = process.env.JWT_SECRET || 'default-secret-change-in-production';
     

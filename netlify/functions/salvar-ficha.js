@@ -70,14 +70,49 @@ exports.handler = async (event, context) => {
     };
   }
 
+  // 🔒 BLOQUEIA ACESSO DIRETO PELO NAVEGADOR
+  // Apenas POST é permitido (GET bloqueado para evitar exposição)
+  if (event.httpMethod === 'GET') {
+    return {
+      statusCode: 403,
+      headers,
+      body: JSON.stringify({ 
+        success: false,
+        error: 'Acesso negado. Este endpoint não está disponível para acesso direto.' 
+      })
+    };
+  }
+
   // Valida método HTTP
-  if (event.httpMethod !== 'POST' && event.httpMethod !== 'GET') {
+  if (event.httpMethod !== 'POST') {
     return {
       statusCode: 405,
       headers,
       body: JSON.stringify({ 
         success: false,
         error: 'Método não permitido' 
+      })
+    };
+  }
+
+  // 🔒 PROTEÇÃO ADICIONAL: Verifica origem da requisição
+  const referer = event.headers['referer'] || event.headers['origin'] || '';
+  const allowedDomains = [
+    'fichasemanalwatt.netlify.app',
+    'localhost',
+    '127.0.0.1'
+  ];
+  
+  const isValidOrigin = allowedDomains.some(domain => referer.includes(domain));
+  
+  if (!isValidOrigin && process.env.JWT_SECRET) {
+    console.warn('⚠️ Requisição bloqueada - origem inválida:', referer);
+    return {
+      statusCode: 403,
+      headers,
+      body: JSON.stringify({ 
+        success: false,
+        error: 'Acesso negado. Origem da requisição não autorizada.' 
       })
     };
   }
